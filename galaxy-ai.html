@@ -642,6 +642,9 @@ sup.cite { font-size: 10.5px; font-weight: 700; color: var(--accent); background
 }
 
 </style>
+<script>
+window.addEventListener('error',function(e){if(window.Galaxy&&window.Galaxy.app)return;if(document.getElementById('gxBootFail'))return;var d=document.createElement('div');d.id='gxBootFail';d.setAttribute('role','alert');d.style.cssText='position:fixed;left:16px;right:16px;bottom:16px;z-index:99;background:#14142b;color:#fff;padding:14px 16px;border-radius:12px;font:15px/1.5 system-ui,sans-serif';d.textContent='Galaxy AI tidak bisa berjalan di browser ini ('+(e.message||'galat')+'). Perbarui Safari/iPadOS atau browser ke versi terbaru, lalu muat ulang halaman.';(document.body||document.documentElement).appendChild(d);});
+</script>
 </head>
 <body>
 <div class="app" id="app">
@@ -1875,7 +1878,9 @@ window.GALAXY_SANDBOX_HTML = "<!doctype html>\n<html lang=\"id\">\n<head>\n<meta
   function splitSentences(text) {
     return String(text)
       .replace(/\r/g, '')
-      .split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])|\n{1,}/)
+      // tanpa lookbehind (tidak didukung Safari/iPadOS < 16.4): tandai batas kalimat dulu, lalu pecah
+      .replace(/([.!?])\s+(?=[A-Z0-9"'(])/g, '$1\u0001')
+      .split(/\u0001|\n+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 2);
   }
@@ -3875,7 +3880,7 @@ window.GALAXY_SANDBOX_HTML = "<!doctype html>\n<html lang=\"id\">\n<head>\n<meta
 
   function calcPrep(raw) {
     let s = ' ' + raw.toLowerCase() + ' ';
-    s = s.replace(/\?+/g, ' ').replace(/(?<![\d)\s])!+/g, ' ').replace(/(^|\s)!+/g, ' ').replace(/×|·/g, '*').replace(/÷/g, '/').replace(/√/g, ' akar ').replace(/∛/g, ' cbrt ');
+    s = s.replace(/\?+/g, ' ').replace(/(^|[^\d)\s!])!+/g, '$1 ').replace(/(^|\s)!+/g, ' ').replace(/×|·/g, '*').replace(/÷/g, '/').replace(/√/g, ' akar ').replace(/∛/g, ' cbrt ');
     s = s.replace(/²/g, '^2').replace(/³/g, '^3').replace(/π/g, ' pi ');
     s = s.replace(/(\d|\))\s*:\s*(?=[\d(])/g, '$1/');
     s = s.replace(/\bakar\s+pangkat\s+(\d+|dua|tiga|empat)\s+(?:dari\s+)?(\d+(?:[.,]\d+)?|\([^)]*\))/g, (_, n, x) => {
@@ -4407,10 +4412,13 @@ window.GALAXY_SANDBOX_HTML = "<!doctype html>\n<html lang=\"id\">\n<head>\n<meta
   ];
   const ALL_AL = [...new Set(Object.values(V_).flatMap((v) => v.al))];
   const LINK = '(?:\\s*(?:benda|bendanya|nya|sebesar|adalah|yaitu|ialah|=|:|bernilai|sejauh|selama|yang|diberikan|dikerjakan|bekerja|mobil|motor|sepeda|kereta|air|zat cair|logam|lampu|alat|kawat|lain)\\b|\\s*[=:])*\\s*';
+  // "tidak didahului huruf/angka" tanpa lookbehind (Safari/iPadOS < 16.4 tidak mendukung (?<!...)).
+  // Pola ini ikut "memakan" satu karakter pemisah; posisi angka dihitung dari m[1], jadi hasilnya sama.
+  const NOT_AFTER_LETTER = '(?:^|[^a-z0-9.,])';
   function aliasRe(al) {
     const longer = ALL_AL.filter((o) => o !== al && o.startsWith(al + ' ')).map((o) => esc(o.slice(al.length + 1)));
     const neg = longer.length ? `(?!\\s+(?:${longer.join('|')})\\b)` : '';
-    const start = /^[a-z]/i.test(al) ? '(?<![a-z])' : '';
+    const start = /^[a-z]/i.test(al) ? NOT_AFTER_LETTER : '';
     return start + esc(al) + '(?![a-z])' + neg;
   }
 
@@ -4449,7 +4457,7 @@ window.GALAXY_SANDBOX_HTML = "<!doctype html>\n<html lang=\"id\">\n<head>\n<meta
       }
       // bentuk simbol: "m = 5"
       if (!vals[key] && def.sym.length <= 3) {
-        const re = new RegExp(`(?<![a-z])${esc(def.sym.toLowerCase())}\\s*=\\s*(${NUM})\\s*(${UNIT_RE})?`);
+        const re = new RegExp(`${NOT_AFTER_LETTER}${esc(def.sym.toLowerCase())}\\s*=\\s*(${NUM})\\s*(${UNIT_RE})?`);
         const m = t.match(re);
         if (m) {
           let val = parseNumber(m[1]);
@@ -4543,7 +4551,7 @@ window.GALAXY_SANDBOX_HTML = "<!doctype html>\n<html lang=\"id\">\n<head>\n<meta
     const order = Object.entries(DIM).flatMap(([k, al]) => al.map((a) => [k, a])).sort((x, y) => y[1].length - x[1].length);
     for (const [k, al] of order) {
       if (out[k]) continue;
-      const re = new RegExp(`(?<![a-z])${esc(al)}(?![a-z0-9])(?:\\s*(?:nya|=|:|adalah|sebesar|sepanjang|yaitu))*\\s*(${NUM})\\s*(km|m|dm|cm|mm)?(?![a-z0-9])`, 'g');
+      const re = new RegExp(`${NOT_AFTER_LETTER}${esc(al)}(?![a-z0-9])(?:\\s*(?:nya|=|:|adalah|sebesar|sepanjang|yaitu))*\\s*(${NUM})\\s*(km|m|dm|cm|mm)?(?![a-z0-9])`, 'g');
       let m;
       while ((m = re.exec(t))) {
         const pos = m.index + m[0].lastIndexOf(m[1]);
@@ -11334,14 +11342,129 @@ ${(m.sources || []).length ? `<section><h2>${en() ? 'Sources' : 'Sumber'}</h2><o
   };
 
   // --------------------------------------------------------------- ZIP
+  /* Pengurai DEFLATE (RFC 1951) murni JavaScript: cadangan untuk browser tanpa DecompressionStream
+   * (Safari/iPadOS < 16.4). Browser modern memakai DecompressionStream bawaan yang lebih cepat. */
+  function inflateJS(src) {
+    const LBASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+    const LEXT = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+    const DBASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+    const DEXT = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+    const ORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+    let pos = 0, bit = 0, out = new Uint8Array(Math.max(1024, src.length * 4)), n = 0;
+    const need = (k) => {
+      if (n + k <= out.length) return;
+      let size = out.length * 2;
+      while (size < n + k) size *= 2;
+      const o = new Uint8Array(size);
+      o.set(out.subarray(0, n));
+      out = o;
+    };
+    const bits = (k) => {
+      let v = 0;
+      for (let i = 0; i < k; i++) {
+        if (pos >= src.length) throw new Error('data terpotong');
+        v |= ((src[pos] >> bit) & 1) << i;
+        if (++bit === 8) (bit = 0), pos++;
+      }
+      return v;
+    };
+    // tabel Huffman kanonik: counts[len], symbols urut
+    const build = (lens) => {
+      const counts = new Uint16Array(16), offs = new Uint16Array(16), syms = new Uint16Array(lens.length);
+      for (const l of lens) counts[l]++;
+      counts[0] = 0;
+      for (let i = 1; i < 16; i++) offs[i] = offs[i - 1] + counts[i - 1];
+      lens.forEach((l, s) => l && (syms[offs[l]++] = s));
+      return { counts, syms };
+    };
+    const decode = (h) => {
+      let code = 0, first = 0, index = 0;
+      for (let len = 1; len < 16; len++) {
+        code |= bits(1);
+        const c = h.counts[len];
+        if (code - c < first) return h.syms[index + (code - first)];
+        index += c;
+        first = (first + c) << 1;
+        code <<= 1;
+      }
+      throw new Error('kode Huffman tidak valid');
+    };
+    let fixedL = null, fixedD = null;
+    for (let last = 0; !last; ) {
+      last = bits(1);
+      const type = bits(2);
+      if (type === 0) {
+        if (bit) (bit = 0), pos++;
+        const len = src[pos] | (src[pos + 1] << 8);
+        pos += 4;
+        need(len);
+        out.set(src.subarray(pos, pos + len), n);
+        n += len;
+        pos += len;
+        continue;
+      }
+      let lit, dist;
+      if (type === 1) {
+        if (!fixedL) {
+          const l = new Array(288).fill(8, 0, 144).fill(9, 144, 256).fill(7, 256, 280).fill(8, 280, 288);
+          fixedL = build(l);
+          fixedD = build(new Array(30).fill(5));
+        }
+        lit = fixedL;
+        dist = fixedD;
+      } else if (type === 2) {
+        const hlit = bits(5) + 257, hdist = bits(5) + 1, hclen = bits(4) + 4;
+        const cl = new Array(19).fill(0);
+        for (let i = 0; i < hclen; i++) cl[ORDER[i]] = bits(3);
+        const ch = build(cl);
+        const lens = [];
+        while (lens.length < hlit + hdist) {
+          const sym = decode(ch);
+          if (sym < 16) lens.push(sym);
+          else if (sym === 16) {
+            const prev = lens[lens.length - 1];
+            for (let r = 3 + bits(2); r; r--) lens.push(prev);
+          } else for (let r = sym === 17 ? 3 + bits(3) : 11 + bits(7); r; r--) lens.push(0);
+        }
+        lit = build(lens.slice(0, hlit));
+        dist = build(lens.slice(hlit));
+      } else throw new Error('blok DEFLATE tidak valid');
+      for (;;) {
+        const sym = decode(lit);
+        if (sym < 256) {
+          need(1);
+          out[n++] = sym;
+        } else if (sym === 256) break;
+        else {
+          const li = sym - 257;
+          const len = LBASE[li] + bits(LEXT[li]);
+          const di = decode(dist);
+          const d = DBASE[di] + bits(DEXT[di]);
+          need(len);
+          for (let i = 0; i < len; i++, n++) out[n] = out[n - d];
+        }
+      }
+    }
+    return out.slice(0, n);
+  }
+  const hasDS = typeof DecompressionStream === 'function';
   async function inflateRaw(bytes) {
-    const ds = new DecompressionStream('deflate-raw');
-    const out = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
-    return new Uint8Array(out);
+    if (!hasDS) return inflateJS(bytes);
+    try {
+      const ds = new DecompressionStream('deflate-raw');
+      return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer());
+    } catch (e) {
+      return inflateJS(bytes); // Safari 16.0–16.3: ada DecompressionStream, tetapi belum mendukung "deflate-raw"
+    }
   }
   async function inflateZlib(bytes) {
-    const ds = new DecompressionStream('deflate');
-    return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer());
+    if (hasDS) {
+      try {
+        const ds = new DecompressionStream('deflate');
+        return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer());
+      } catch (e) {}
+    }
+    return inflateJS(bytes.subarray(2)); // lewati 2 bita kepala zlib
   }
   /** Baca isi ZIP (format Office). Mengembalikan Map nama -> Uint8Array (hanya berkas yang diminta). */
   async function unzip(buf, want) {
@@ -11636,7 +11759,7 @@ ${(m.sources || []).length ? `<section><h2>${en() ? 'Sources' : 'Sumber'}</h2><o
     return (await N.mem.getBlob(att.id + ':large')) || att.thumb || '';
   }
 
-  N.files = { kindOf, process, fromLink, fromDrive, describe, textOf, largeImage, KIND, sizeStr, unzip, docxText, xlsxText, pptxText, pdfText, colorName, accept: 'image/*,video/*,audio/*,.pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.tsv,.json,.html,.htm,.xml,.js,.py,.java,.c,.cpp,.go,.php,.sql,.css,.ts' };
+  N.files = { inflateJS: (b) => inflateJS(b), kindOf, process, fromLink, fromDrive, describe, textOf, largeImage, KIND, sizeStr, unzip, docxText, xlsxText, pptxText, pdfText, colorName, accept: 'image/*,video/*,audio/*,.pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.tsv,.json,.html,.htm,.xml,.js,.py,.java,.c,.cpp,.go,.php,.sql,.css,.ts' };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 ;
@@ -14013,7 +14136,9 @@ lib.create(${JSON.stringify({ kind: spec.anim, dim: spec.dim, params: spec.param
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
         e.preventDefault();
-        $('#composer').requestSubmit();
+        const f = $('#composer');
+        if (f.requestSubmit) f.requestSubmit();
+        else f.dispatchEvent(new Event('submit', { cancelable: true })); // Safari < 16
       }
     });
     input.addEventListener('paste', (e) => {
