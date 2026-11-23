@@ -1,0 +1,30 @@
+{"id": "tambah", "prompt": "def tambah(a, b):\n    \"\"\"Return the sum of a and b.\"\"\"\n", "tests": "assert tambah(2, 3) == 5\nassert tambah(-1, 1) == 0"}
+{"id": "kurang", "prompt": "def kurang(a, b):\n    \"\"\"Return a minus b.\"\"\"\n", "tests": "assert kurang(5, 3) == 2\nassert kurang(0, 4) == -4"}
+{"id": "kali", "prompt": "def kali(a, b):\n    \"\"\"Return a times b.\"\"\"\n", "tests": "assert kali(3, 4) == 12\nassert kali(-2, 5) == -10"}
+{"id": "kuadrat", "prompt": "def kuadrat(x):\n    \"\"\"Return x squared.\"\"\"\n", "tests": "assert kuadrat(3) == 9\nassert kuadrat(-4) == 16"}
+{"id": "pangkat_tiga", "prompt": "def pangkat_tiga(x):\n    \"\"\"Return x to the power of 3.\"\"\"\n", "tests": "assert pangkat_tiga(2) == 8\nassert pangkat_tiga(-1) == -1"}
+{"id": "is_genap", "prompt": "def is_genap(n):\n    \"\"\"Return True if n is even.\"\"\"\n", "tests": "assert is_genap(4) is True\nassert is_genap(7) is False"}
+{"id": "is_ganjil", "prompt": "def is_ganjil(n):\n    \"\"\"Return True if n is odd.\"\"\"\n", "tests": "assert is_ganjil(3) is True\nassert is_ganjil(10) is False"}
+{"id": "nilai_mutlak", "prompt": "def nilai_mutlak(x):\n    \"\"\"Return the absolute value of x.\"\"\"\n", "tests": "assert nilai_mutlak(-5) == 5\nassert nilai_mutlak(3) == 3"}
+{"id": "terbesar", "prompt": "def terbesar(a, b):\n    \"\"\"Return the larger of a and b.\"\"\"\n", "tests": "assert terbesar(3, 9) == 9\nassert terbesar(7, 2) == 7"}
+{"id": "terkecil", "prompt": "def terkecil(a, b):\n    \"\"\"Return the smaller of a and b.\"\"\"\n", "tests": "assert terkecil(3, 9) == 3\nassert terkecil(7, 2) == 2"}
+{"id": "jumlah_list", "prompt": "def jumlah_list(items):\n    \"\"\"Return the sum of all numbers in the list items.\"\"\"\n", "tests": "assert jumlah_list([1, 2, 3]) == 6\nassert jumlah_list([]) == 0"}
+{"id": "maks_list", "prompt": "def maks_list(items):\n    \"\"\"Return the largest number in the list items.\"\"\"\n", "tests": "assert maks_list([4, 9, 2]) == 9\nassert maks_list([-3, -1]) == -1"}
+{"id": "panjang", "prompt": "def panjang(items):\n    \"\"\"Return the number of elements in items.\"\"\"\n", "tests": "assert panjang([1, 2, 3]) == 3\nassert panjang([]) == 0"}
+{"id": "balik_teks", "prompt": "def balik_teks(s):\n    \"\"\"Return the string s reversed.\"\"\"\n", "tests": "assert balik_teks('abc') == 'cba'\nassert balik_teks('') == ''"}
+{"id": "huruf_besar", "prompt": "def huruf_besar(s):\n    \"\"\"Return s converted to uppercase.\"\"\"\n", "tests": "assert huruf_besar('halo') == 'HALO'"}
+{"id": "huruf_kecil", "prompt": "def huruf_kecil(s):\n    \"\"\"Return s converted to lowercase.\"\"\"\n", "tests": "assert huruf_kecil('HaLo') == 'halo'"}
+{"id": "elemen_pertama", "prompt": "def elemen_pertama(items):\n    \"\"\"Return the first element of items.\"\"\"\n", "tests": "assert elemen_pertama([5, 6]) == 5\nassert elemen_pertama('xy') == 'x'"}
+{"id": "elemen_terakhir", "prompt": "def elemen_terakhir(items):\n    \"\"\"Return the last element of items.\"\"\"\n", "tests": "assert elemen_terakhir([5, 6]) == 6\nassert elemen_terakhir('xy') == 'y'"}
+{"id": "faktorial", "prompt": "def faktorial(n):\n    \"\"\"Return n factorial.\"\"\"\n", "tests": "assert faktorial(0) == 1\nassert faktorial(5) == 120"}
+{"id": "rata_rata", "prompt": "def rata_rata(items):\n    \"\"\"Return the average of the numbers in items.\"\"\"\n", "tests": "assert rata_rata([2, 4, 6]) == 4\nassert rata_rata([1]) == 1"}
+{"id": "gandakan_list", "prompt": "def gandakan_list(items):\n    \"\"\"Return a new list with every element of items multiplied by 2.\"\"\"\n", "tests": "assert gandakan_list([1, 2]) == [2, 4]\nassert gandakan_list([]) == []"}
+{"id": "hanya_genap", "prompt": "def hanya_genap(items):\n    \"\"\"Return a list of the even numbers in items.\"\"\"\n", "tests": "assert hanya_genap([1, 2, 3, 4]) == [2, 4]"}
+{"id": "hitung_huruf", "prompt": "def hitung_huruf(s, c):\n    \"\"\"Return how many times the character c appears in s.\"\"\"\n", "tests": "assert hitung_huruf('banana', 'a') == 3\nassert hitung_huruf('abc', 'z') == 0"}
+{"id": "gabung_teks", "prompt": "def gabung_teks(a, b):\n    \"\"\"Return the strings a and b joined together.\"\"\"\n", "tests": "assert gabung_teks('ab', 'cd') == 'abcd'"}
+{"id": "is_positif", "prompt": "def is_positif(x):\n    \"\"\"Return True if x is greater than zero.\"\"\"\n", "tests": "assert is_positif(3) is True\nassert is_positif(-2) is False\nassert is_positif(0) is False"}
+{"id": "is_kosong", "prompt": "def is_kosong(items):\n    \"\"\"Return True if items is empty.\"\"\"\n", "tests": "assert is_kosong([]) is True\nassert is_kosong([1]) is False"}
+{"id": "urutkan", "prompt": "def urutkan(items):\n    \"\"\"Return a new sorted list of items.\"\"\"\n", "tests": "assert urutkan([3, 1, 2]) == [1, 2, 3]"}
+{"id": "tanpa_duplikat", "prompt": "def tanpa_duplikat(items):\n    \"\"\"Return a sorted list of the unique elements of items.\"\"\"\n", "tests": "assert tanpa_duplikat([3, 1, 3, 2, 1]) == [1, 2, 3]"}
+{"id": "sisa_bagi", "prompt": "def sisa_bagi(a, b):\n    \"\"\"Return the remainder of a divided by b.\"\"\"\n", "tests": "assert sisa_bagi(7, 3) == 1\nassert sisa_bagi(10, 5) == 0"}
+{"id": "bagi_bulat", "prompt": "def bagi_bulat(a, b):\n    \"\"\"Return a divided by b, rounded down to an integer.\"\"\"\n", "tests": "assert bagi_bulat(7, 2) == 3\nassert bagi_bulat(9, 3) == 3"}
