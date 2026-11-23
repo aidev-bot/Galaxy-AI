@@ -101,8 +101,11 @@ def train(model: Galaxy, mixer: Mixer, device: str, steps: int, lr=3e-4, bs=16, 
     warmup = max(1, steps // 50) if warmup is None else warmup
     t0, last_val = time.time(), None
     for step in range(1, steps + 1):
-        if step < warmup:
-            cur = lr * step / warmup
+        warm = step / warmup
+        if time_limit:  # pemanasan juga selesai setelah 2% waktu
+            warm = max(warm, (time.time() - t0) / (0.02 * time_limit))
+        if warm < 1:
+            cur = lr * warm
         else:
             prog = (step - warmup) / max(1, steps - warmup)
             if time_limit:
