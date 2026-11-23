@@ -8,6 +8,10 @@ nomor HP agar boleh memakai GPU.
     python kaggle_jalankan.py kirim --pemilik USERNAME --mode penuh   # latihan berjam-jam
     python kaggle_jalankan.py status --pemilik USERNAME
     python kaggle_jalankan.py ambil  --pemilik USERNAME               # unduh ke hasil_kaggle/
+
+Tanpa API key: buat file notebook, lalu tempel isinya di Kaggle lewat browser.
+
+    python kaggle_jalankan.py bundel --mode penuh   # -> kaggle/galaxy_penuh.py
 """
 import argparse
 import base64
@@ -79,6 +83,10 @@ def bundle() -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
+def runner(mode: str) -> str:
+    return RUNNER.replace("{bundle}", bundle()).replace("{steps!r}", repr(MODES[mode]))
+
+
 def kaggle(*args):
     print("$ kaggle", *args, flush=True)
     return subprocess.run(["kaggle", *args], check=False)
@@ -86,12 +94,21 @@ def kaggle(*args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("aksi", choices=["kirim", "status", "ambil"])
-    ap.add_argument("--pemilik", required=True, help="username Kaggle kamu")
+    ap.add_argument("aksi", choices=["kirim", "status", "ambil", "bundel"])
+    ap.add_argument("--pemilik", help="username Kaggle kamu (untuk kirim/status/ambil)")
     ap.add_argument("--nama", default="galaxy-brain")
     ap.add_argument("--mode", default="cepat", choices=list(MODES))
     ap.add_argument("--keluar", default="hasil_kaggle")
     a = ap.parse_args()
+    if a.aksi == "bundel":
+        path = os.path.join(SINI, "kaggle", f"galaxy_{a.mode}.py")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write(runner(a.mode))
+        print(f"Dibuat: {path} ({os.path.getsize(path) // 1024} KB)")
+        return
+    if not a.pemilik:
+        ap.error("--pemilik wajib untuk kirim/status/ambil")
     ref = f"{a.pemilik}/{a.nama}"
 
     if a.aksi == "status":
@@ -102,7 +119,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as d:
         with open(os.path.join(d, "run.py"), "w") as f:
-            f.write(RUNNER.replace("{bundle}", bundle()).replace("{steps!r}", repr(MODES[a.mode])))
+            f.write(runner(a.mode))
         meta = {"id": ref, "title": a.nama, "code_file": "run.py", "language": "python",
                 "kernel_type": "script", "is_private": True, "enable_gpu": True,
                 "enable_internet": False, "machine_shape": "NvidiaTeslaT4",
