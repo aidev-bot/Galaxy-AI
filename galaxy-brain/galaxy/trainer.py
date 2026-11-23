@@ -85,8 +85,11 @@ def autocast(device: str):
 
 def train(model: Galaxy, mixer: Mixer, device: str, steps: int, lr=3e-4, bs=16, accum=1,
           warmup=None, weight_decay=0.1, val_data=None, eval_every=0, log_every=20,
-          save_fn=None):
-    """Melatih model. save_fn(step, val_loss) dipanggil setiap eval_every langkah."""
+          save_fn=None, time_limit=None):
+    """Melatih model. save_fn(step, val_loss) dipanggil setiap eval_every langkah.
+
+    time_limit (detik): latihan berhenti saat waktu habis; jadwal LR ikut
+    menyesuaikan agar tetap turun mulus sampai akhir."""
     model.train()
     decay = [p for n, p in model.named_parameters() if p.dim() >= 2]
     no_decay = [p for n, p in model.named_parameters() if p.dim() < 2]
@@ -102,6 +105,9 @@ def train(model: Galaxy, mixer: Mixer, device: str, steps: int, lr=3e-4, bs=16, 
             cur = lr * step / warmup
         else:
             prog = (step - warmup) / max(1, steps - warmup)
+            if time_limit:
+                prog = max(prog, (time.time() - t0) / time_limit)
+            prog = min(prog, 1.0)
             cur = lr * (0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * prog)))
         for g in opt.param_groups:
             g["lr"] = cur
@@ -120,10 +126,15 @@ def train(model: Galaxy, mixer: Mixer, device: str, steps: int, lr=3e-4, bs=16, 
             tok = step * bs * accum * model.config.ctx
             print(f"  langkah {step}/{steps}  loss {loss.item():.3f}  lr {cur:.2e}  "
                   f"{tok / dt:,.0f} token/detik", flush=True)
-        if eval_every and val_data is not None and (step % eval_every == 0 or step == steps):
+        habis = bool(time_limit) and time.time() - t0 >= time_limit
+        if eval_every and val_data is not None and (
+                step % eval_every == 0 or step == steps or habis):
             last_val = eval_loss(model, val_data, device)
             print(f"  >> val loss {last_val:.3f}", flush=True)
             if save_fn:
                 save_fn(step, last_val)
+        if habis:
+            print(f"  waktu habis di langkah {step}", flush=True)
+            break
     model.eval()
     return last_val

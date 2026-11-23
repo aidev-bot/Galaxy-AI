@@ -24,6 +24,8 @@ def main():
     ap.add_argument("--akumulasi", type=int, default=1)
     ap.add_argument("--lr", type=float, default=None)
     ap.add_argument("--eval-tiap", type=int, default=500)
+    ap.add_argument("--batas-menit", type=float, default=None,
+                    help="berhenti setelah sekian menit (jadwal LR menyesuaikan)")
     ap.add_argument("--perangkat", default="auto")
     ap.add_argument("--compile", action="store_true", help="torch.compile (lebih cepat di GPU)")
     a = ap.parse_args()
@@ -54,7 +56,8 @@ def main():
             print(f"  disimpan -> {a.keluar}")
 
     train(net, Mixer([(latih, 1.0)], model.config.ctx), dev, a.langkah, lr=lr, bs=a.batch,
-          accum=a.akumulasi, val_data=val, eval_every=a.eval_tiap, save_fn=simpan)
+          accum=a.akumulasi, val_data=val, eval_every=a.eval_tiap, save_fn=simpan,
+          time_limit=a.batas_menit * 60 if a.batas_menit else None)
     print(f"Selesai. Val loss terbaik: {terbaik[0]:.3f}")
 
 
